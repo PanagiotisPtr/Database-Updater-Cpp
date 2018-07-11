@@ -1,0 +1,18 @@
+To run this project please make sure you have the following libraries:
+jsoncpp
+libcurl
+mysql for C++
+
+to get them on Ubuntu use the following
+sudo apt-get install g++
+sudo apt-get install mysql-server
+mysql_secure_installation   // if you just installed mysql-server also run the mysql_secure_installation
+sudo apt-get install libmysqlclient-dev
+sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install libjsoncpp-dev
+
+if you have problems with mysql also get:
+sudo apt-get install libmysqlcppconn-dev
+
+Notes:
+    - Don't forget to run: `sudo service mysql start` to start mysql server

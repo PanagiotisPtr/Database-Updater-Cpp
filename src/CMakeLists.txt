@@ -9,7 +9,7 @@ add_executable(
     main.cpp
     Connection.cpp
     Parser.cpp
-    Stock.cpp
+    Data.cpp
 )
 
 target_link_libraries(UpdateDB jsoncpp) #-ljsoncpp

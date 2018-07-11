@@ -4,9 +4,13 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 #include "Parser.h"
 #include "Stock.h"
+#include "News.h"
 
 using namespace std;
 
@@ -15,23 +19,48 @@ using namespace std;
     This naming convention is used over all of the project files
 */
 
+string getLastWeekDate(){
+    time_t now = time(nullptr);
+    // go back 7 days
+    tm *t = gmtime(&now);
+    t->tm_mday = t->tm_mday - 7;
+    // Normalize date ( ex. avoid something like the day being a negative number )
+    time_t lastWeek = mktime(t);
+    tm *norm = gmtime(&lastWeek);
+    // get as string
+    ostringstream oss;
+    oss << put_time(norm, "%Y-%m-%d");
+    return oss.str();
+}
+
+// replaces spaces with %20 to search URLs
+string replaceSpaces(string str){
+    // This is a bad way to do this*
+    // check the end of the file to learn why
+    while(str.find(" ") != string::npos)
+        str.replace(str.find(" "), 1, "%20");
+    return str;
+}
+
 int main(){
     ifstream inFile("companies.csv");
     string ticker;
     string name;
     string sector;
     while(getline(inFile, ticker, ',')){
-        // get comapny info from css
+        // get comapny info from csv
         cout << "Now parsing: " << ticker << '\t';
         getline(inFile, name, ',');
         cout << name << '\t';
         getline(inFile, sector, '\n');
         cout << sector << endl;
 
-        // Create Parser and get json
-        Parser parser("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker + "&outputsize=full&apikey=YOUR_API_KEY");
+        cout << "Updating prices..." << endl;
+        // Parse stock prices
+        Parser parser("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker + "&outputsize=compact&apikey=ZOLZER1EWPV7OZT2");
         parser.request();
         Json::Value j = parser.get_json();
+        ticker.erase(std::remove(ticker.begin(), ticker.end(), '.'), ticker.end());
         if(j.isMember("Error Message")){
             cout << "STOCK" << ticker << "SKIPPED!" << endl;
             continue;
@@ -45,14 +74,38 @@ int main(){
 
         // Create Stock and push the data on the database
         Stock stock(j);
-		// Note that SERVER_IP can also be "localhost"
-		// Reference: string _ip, string _user, string _pass, string _db, unsigned _port, const char *_socket, unsigned long _flag) // Check Stock.h and Options.h
-		// For more options visit: https://dev.mysql.com/doc/mysql/en/mysql-real-connect.html 
-        stock.set_opt("SERVER_IP", "USERNAME", "PASSWORD", "DATABASE_NAME", 0, NULL, 0);
-        stock.post("cpp_example");
+        stock.set_opt("localhost", "username", "password", "database", 0, NULL, 0);
+        stock.post(ticker);
 
-        // Do not overwhelm the API
+        cout << "Updating news..." << endl;
+        // Parse news about company
+        Parser newsParser("https://newsapi.org/v2/everything?q=" + replaceSpaces(name) + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=ae89c21b97fb4cf78a064b2186a3b677");
+        newsParser.request();
+        Json::Value n = newsParser.get_json();
+        if(n.get("status", "error") != "ok" || n.get("totalResults", 0) == 0){
+            // try searching for company ticker instead of name
+            Parser newsParser("https://newsapi.org/v2/everything?q=" + ticker + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=ae89c21b97fb4cf78a064b2186a3b677");
+            newsParser.request();
+            n = newsParser.get_json();
+            if(n.get("status", "error") != "ok" || n.get("totalResults", 0) == 0){
+                cout << "No news found about" << name << endl;
+                continue;
+            }
+        }
+
+        // Create News object and push data on database
+        News news(n);
+        news.set_opt("localhost", "username", "password", "database", 0, NULL, 0);
+        news.post(ticker + "_news");
+        cout << "Done!" << endl;
+        // Do not overwhelm the APIs
         std::this_thread::sleep_for(std::chrono::seconds(2));
     }
     cout << "Success\n";
 }
+
+
+// *The function that replaces spaces is really badly written. It takes exponentially more time to replace spaces as the string gets longer
+// the reason for this is that it starts from the start of the string and searches to the end each time while we KNOW for a fact that there
+// are no spaces before the one we just erased so there is no point of going back. Thus this task can also be done in linear time but needs
+// attention because you can't replace a character ' ' with a string "%20" easily.

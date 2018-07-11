@@ -1,56 +1,44 @@
 #ifndef STOCK_H
 #define STOCK_H
 
-#include <iostream>
-#include <string>
-#include <algorithm>
-#include <jsoncpp/json/value.h>
-#include <thread>
-#include <chrono>
-#include <ctime>
-#include <time.h>
-
-#include "Options.h"
-#include "Connection.h"
+#include "Data.h"
 
 /*
-    The Stock class is the centerpiece of this project. Given a Json::Value it allows easy posting of the data on the mysql database.
-    It also handles duplicate values at the databases and updates them while adding the new ones as needed.
+    Specialized Stock class. All it does is parse the stock from the json that gets to collect the informtion necessary.
+    Note: This classes is designed to only be used with the Alpha vantage API
+    
+    Even the comments are similar between the Stock and News classes... I wish I could use a inheritance to comment code too...
 */
 
-class Stock{
+class Stock : public Data {
 public:
-    Stock(const Json::Value &j): data(j){}
-    void set_opt(std::string ip, std::string user, std::string pass, std::string db, unsigned port, const char *socket, unsigned long flag);
-    void post(std::string database);
+    Stock(const Json::Value &j): Data(j){
+        props = {
+            {"date", "int unsigned primary key"},
+            {"open", "float"},
+            {"high", "float"},
+            {"low", "float"},
+            {"close", "float"},
+            {"volume", "int unsigned"}
+        };
+    }
 private:
-    Json::Value data;
-    // Stock props is a dummy struct that holds a few values and is used to avoid redundant code
-    struct StockProps{
-        std::string get_vals_string(){
-            return unix_date + "," + open + "," + high + "," + low + "," + close + "," + volume;
+    std::string create_data_query(){
+        std::string rv = "";
+        for(Json::Value::const_iterator i = data["Time Series (Daily)"].end() ; i-- != data["Time Series (Daily)"].begin();){
+            rv += "(";
+            std::string date = i.key().asString();
+            std::string unix_date = get_unix(date);
+            std::string open = (*i).get("1. open", "missing_argument").asString();
+            std::string high = (*i).get("2. high", "missing_argument").asString();
+            std::string low = (*i).get("3. low", "missing_argument").asString();
+            std::string close = (*i).get("4. close", "missing_argument").asString();
+            std::string volume = (*i).get("5. volume", "missing_argument").asString();
+            rv += unix_date + ", " + open + ", " + high + ", " + low + ", " + close + ", " + volume;
+            rv += "),";
         }
-        std::string date;
-        std::string unix_date;
-        std::string open;
-        std::string high;
-        std::string low;
-        std::string close;
-        std::string volume;
-    };
-
-    //constants used for the progrss bar
-    static const std::string PBSTR;
-    static const unsigned PBWIDTH;
-
-    // Helpers
-    std::string get_unix(std::string date); // returns date as a unix timestamp
-    void print_progress(double percentage); // updates progress bar
-    bool create_table(std::string db_name, std::string table_name);
-    StockProps parse_props(Json::Value::const_iterator i);
-
-    // Connection options
-    Options conn_opt;
+        return rv;
+    }
 };
 
 #endif
