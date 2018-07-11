@@ -2,7 +2,7 @@
 A C++ program that updates a database with Stock Data from the alphavantage API
 
 ### What is this project about
-This is a C++ program that using the Alphavantage API requests a json file with the prices of a certain stock (using libcurl). Then it parses the file (using Jsoncpp) and finally uploads the data on a database (using mysql). This project is used to updates the info on a database that I plan to use for other puproses.
+This is a C++ program that using the Alphavantage API requests a json file with the prices of a certain stock (using libcurl). Then it parses the file (using Jsoncpp) and finally uploads the data on a database (using mysql). it also uses the newsAPI to parse news data about stocks. This project is used to updates the info on a database that I plan to use for other puproses.
 
 ### The code
 All the code is written in C++. Some classes are general purpose and others are specific. For example the Parser and the Connection classes could be used independently while the Stock and Options classes are made for a specific purpose. Quick note; this project doesn't use the mysql connector but rather the mysql C++ API (mysqlclient).
