@@ -57,7 +57,7 @@ int main(){
 
         cout << "Updating prices..." << endl;
         // Parse stock prices
-        Parser parser("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker + "&outputsize=compact&apikey=ZOLZER1EWPV7OZT2");
+        Parser parser("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker + "&outputsize=compact&apikey=YOUR_API_KEY");
         parser.request();
         Json::Value j = parser.get_json();
         ticker.erase(std::remove(ticker.begin(), ticker.end(), '.'), ticker.end());
@@ -79,12 +79,12 @@ int main(){
 
         cout << "Updating news..." << endl;
         // Parse news about company
-        Parser newsParser("https://newsapi.org/v2/everything?q=" + replaceSpaces(name) + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=ae89c21b97fb4cf78a064b2186a3b677");
+        Parser newsParser("https://newsapi.org/v2/everything?q=" + replaceSpaces(name) + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=YOUR_API_KEY");
         newsParser.request();
         Json::Value n = newsParser.get_json();
         if(n.get("status", "error") != "ok" || n.get("totalResults", 0) == 0){
             // try searching for company ticker instead of name
-            Parser newsParser("https://newsapi.org/v2/everything?q=" + ticker + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=ae89c21b97fb4cf78a064b2186a3b677");
+            Parser newsParser("https://newsapi.org/v2/everything?q=" + ticker + "&from=" + getLastWeekDate() + "&sortBy=popularity&apiKey=YOUR_API_KEY");
             newsParser.request();
             n = newsParser.get_json();
             if(n.get("status", "error") != "ok" || n.get("totalResults", 0) == 0){
